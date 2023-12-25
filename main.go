@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/HaBaLeS/synt-go-thic/mpk"
 	"github.com/ebitengine/oto/v3"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"gitlab.com/gomidi/midi/v2"
+	_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
 	"log"
 	"math"
 	"time"
@@ -14,8 +15,25 @@ import (
 
 var pos = 0.0
 
+/*
+27.5 -> A0
+55 -> A1
+110 -> A2
+220 -> A3
+440 -> A4
+
+Base Frequ is
+--> 27,5 *2^n
+
+
+
+*/
+
 const samplerate float64 = 48000.0
-const freq float64 = 220.0
+
+const octaveBaseFreq = 110.0
+
+var toneFrequIncrment float64 = math.Pow(2, 1.0/12.0)
 
 type OscillatorType int
 
@@ -29,11 +47,13 @@ type Game struct {
 	osc       *Oscillator
 	maxbuffer int //1chan * 48000/s * 16
 	player    *oto.Player
+	midi      *mpk.MPK3Mini
 }
 
 type Oscillator struct {
-	ot   OscillatorType
-	game *Game
+	ot        OscillatorType
+	game      *Game
+	frequency float64
 }
 
 func (o *Oscillator) Read(p []byte) (n int, err error) {
@@ -59,12 +79,9 @@ func (o *Oscillator) Read(p []byte) (n int, err error) {
 }
 
 func (o *Oscillator) genRect(p []byte) (n int, err error) {
-	t := time.Now()
-	fmt.Printf("WaveGen: %d\n", t.UnixMilli())
 	sr := 44800.0            //Hz
 	maxAmpl := 32767.0 * 0.5 //num
-	noteA := 110.0           //Hz
-	length := sr / noteA
+	length := sr / o.frequency
 	ampl := 0
 
 	for i := 0; i < len(p)/2; i++ {
@@ -85,13 +102,11 @@ func (o *Oscillator) genSine(p []byte) (n int, err error) {
 
 	sr := 44800.0            //Hz
 	maxAmpl := 32767.0 * 0.5 //num
-	noteA := 110.0           //Hz
-	length := sr / noteA
+	length := sr / o.frequency
 
 	for i := 0; i < len(p)/2; i++ {
 		val := math.Sin(2 * math.Pi * (float64(pos) / length))
 		ampl := int(val * maxAmpl)
-		//fmt.Printf("(%d)%f ", pos, ampl)
 		p[2*i] = byte(ampl)
 		p[2*i+1] = byte(ampl >> 8)
 		pos++
@@ -100,12 +115,25 @@ func (o *Oscillator) genSine(p []byte) (n int, err error) {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrint(screen, "Hello, World!")
 	if g.playSound {
 		ebitenutil.DebugPrintAt(screen, "Playing", 320/2, 240/2)
 	} else {
 		ebitenutil.DebugPrintAt(screen, "Pause", 320/2, 240/2)
 	}
+
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K1 -> %d", g.midi.KnobVal("K1")), 20, 100)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K2 -> %d", g.midi.KnobVal("K2")), 20, 116)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K3 -> %d", g.midi.KnobVal("K3")), 20, 132)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K4 -> %d", g.midi.KnobVal("K4")), 20, 148)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K5 -> %d", g.midi.KnobVal("K5")), 20, 164)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K6 -> %d", g.midi.KnobVal("K6")), 20, 178)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K7 -> %d", g.midi.KnobVal("K7")), 20, 192)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K8 -> %d", g.midi.KnobVal("K8")), 20, 208)
+
+	for i, v := range g.midi.MidiKeys() {
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Piano Tone %s", v.Name), 200, 100+16*i)
+	}
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -115,7 +143,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func main() {
 	fmt.Println("synt-go-thic starting ....")
 
-	//initMidi()
 	var bufTimeMS time.Duration = 5
 	bits := 16
 	channels := 1
@@ -145,10 +172,16 @@ func main() {
 		maxbuffer: int(samplerate/1000.0) * int(bufTimeMS) * (bits / 8) * channels,
 	}
 
+	fmt.Printf("Creating Midi Device\n")
+	game.midi = mpk.NewMPK3Mini()
+
 	game.osc = &Oscillator{
-		ot:   RECT,
-		game: game,
+		ot:        RECT,
+		game:      game,
+		frequency: 440,
 	}
+
+	fmt.Printf("Creating Audio Plyer\n")
 	game.player = otoCtx.NewPlayer(game.osc)
 	game.player.SetBufferSize(game.maxbuffer * 2)
 	game.player.Play()
@@ -159,45 +192,11 @@ func main() {
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
+	game.midi.Stop()
 	err = game.player.Close()
 	if err != nil {
 		panic("player.Close failed: " + err.Error())
 	}
-}
-
-func initMidi() {
-
-	defer midi.CloseDriver()
-
-	in, err := midi.FindInPort("VMPK")
-	if err != nil {
-		fmt.Println("can't find VMPK")
-		return
-	}
-
-	stop, err := midi.ListenTo(in, func(msg midi.Message, timestampms int32) {
-		var bt []byte
-		var ch, key, vel uint8
-		switch {
-		case msg.GetSysEx(&bt):
-			fmt.Printf("got sysex: % X\n", bt)
-		case msg.GetNoteStart(&ch, &key, &vel):
-			fmt.Printf("starting note %s on channel %v with velocity %v\n", midi.Note(key), ch, vel)
-		case msg.GetNoteEnd(&ch, &key):
-			fmt.Printf("ending note %s on channel %v\n", midi.Note(key), ch)
-		default:
-			// ignore
-		}
-	}, midi.UseSysEx())
-
-	if err != nil {
-		fmt.Printf("ERROR: %s\n", err)
-		return
-	}
-
-	time.Sleep(time.Second * 5)
-
-	stop()
 }
 
 func (g *Game) Update() error {
@@ -206,11 +205,38 @@ func (g *Game) Update() error {
 	} else {
 		g.playSound = false
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+	if inpututil.IsKeyJustPressed(ebiten.Key1) {
 		g.osc.ot = SINE
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+	if inpututil.IsKeyJustPressed(ebiten.Key2) {
 		g.osc.ot = RECT
 	}
+
+	/*if inpututil.KeyPressDuration(ebiten.KeyA) > 0 {
+		g.osc.frequency = octaveBaseFreq * math.Pow(toneFrequIncrment, 0)
+		g.playSound = true
+	} else if inpututil.KeyPressDuration(ebiten.KeyS) > 0 {
+		g.osc.frequency = octaveBaseFreq * math.Pow(toneFrequIncrment, 1)
+		g.playSound = true
+	} else if inpututil.KeyPressDuration(ebiten.KeyD) > 0 {
+		g.osc.frequency = octaveBaseFreq * math.Pow(toneFrequIncrment, 2)
+		g.playSound = true
+	} else if inpututil.KeyPressDuration(ebiten.KeyF) > 0 {
+		g.osc.frequency = octaveBaseFreq * math.Pow(toneFrequIncrment, 3)
+		g.playSound = true
+	} else {
+		g.playSound = false
+	}*/
+
+	midiKeys := g.midi.MidiKeys()
+	if len(midiKeys) > 0 {
+		k := midiKeys[0]
+		bf := math.Pow(2, float64(k.Octave)) * 27.5 //frequ of A
+		g.osc.frequency = bf * math.Pow(toneFrequIncrment, float64(k.Number-9))
+		g.playSound = true
+	} else {
+		g.playSound = false
+	}
+
 	return nil
 }
