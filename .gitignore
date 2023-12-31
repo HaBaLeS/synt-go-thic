@@ -1,2 +1,4 @@
 .idea
 synt-go-thic.exe
+bin/
+build/*.tar.gz

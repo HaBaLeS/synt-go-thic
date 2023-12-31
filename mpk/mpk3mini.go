@@ -8,7 +8,7 @@ import (
 func NewMPK3Mini() *MPK3Mini {
 	inPorts := midi.GetInPorts()
 	fmt.Printf("Found Midi Device: %v", inPorts)
-	in, err := midi.FindInPort(inPorts[0].String())
+	in, err := midi.FindInPort("MPK mini 3")
 	if err != nil {
 		panic(fmt.Errorf("can't find Midi Device"))
 

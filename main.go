@@ -7,7 +7,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
+	//_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
+	_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 	"log"
 	"math"
 	"time"
@@ -28,6 +29,10 @@ Base Frequ is
 
 
 */
+
+var version string
+var buildtime string
+var deckBuild string
 
 const samplerate float64 = 48000.0
 
@@ -137,7 +142,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 320, 240
+	return outsideWidth, outsideHeight
 }
 
 func main() {
@@ -187,8 +192,12 @@ func main() {
 	game.player.Play()
 	fmt.Printf("Global Buffer is %dms with a buffer size of %d (%d bits, %d channels)\n", bufTimeMS, game.maxbuffer, bits, channels)
 
-	ebiten.SetWindowSize(640, 480)
-	ebiten.SetWindowTitle("Hello, World!")
+	ebiten.SetWindowSize(1280, 800)
+	ebiten.SetWindowTitle("Synth-GO-thic")
+	if deckBuild == "yes" {
+		ebiten.SetFullscreen(true)
+	}
+
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
