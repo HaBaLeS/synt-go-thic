@@ -23,7 +23,7 @@ func NewMPK3Mini() *MPK3Mini {
 		case msg.GetSysEx(&bt):
 			fmt.Printf("got sysex: % X\n", bt)
 		case msg.GetNoteStart(&ch, &key, &vel):
-			fmt.Printf("Press %v -> Key %d in Oct %d\n", key, midi.Note(key).Base(), midi.Note(key).Octave())
+			fmt.Printf("Press %v -> Key %d in Oct%d -> Power: %d\n", key, midi.Note(key).Base(), midi.Note(key).Octave(), int(vel))
 			note := midi.Note(key)
 			mk := &MidiKey{
 				Idx:       int(key),
@@ -48,7 +48,7 @@ func NewMPK3Mini() *MPK3Mini {
 			retVal.keyEvents = append(retVal.keyEvents, mk)
 
 		case msg.GetControlChange(&ch, &key, &val):
-			//fmt.Printf("controll msg: %d val: %d, channel %d\n", key, val, ch)
+			fmt.Printf("controll msg: %d val: %d, channel %d\n", key, val, ch)
 			knob := retVal.knobMap[int(key)]
 			if knob != nil {
 				knob.val = int(val)

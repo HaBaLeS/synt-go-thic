@@ -50,8 +50,11 @@ type Game struct {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K1 -> %d", g.midi.KnobVal("K1")), 20, 100)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K2 -> %d", g.midi.KnobVal("K2")), 20, 116)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Key Press additional Gain -> %d", g.midi.KnobVal("K1")), 20, 100)
+
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Waveform Select K2 -> %d", g.midi.KnobVal("K2")), 20, 116)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf(">%s<", g.mixer.WaveFormName), 200, 116)
+
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K3 -> %d", g.midi.KnobVal("K3")), 20, 132)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K4 -> %d", g.midi.KnobVal("K4")), 20, 148)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K5 -> %d", g.midi.KnobVal("K5")), 20, 164)
@@ -107,7 +110,7 @@ func main() {
 	fmt.Printf("Creating Midi Device\n")
 	game.midi = mpk.NewMPK3Mini()
 
-	game.mixer = engine.NewMixer(10)
+	game.mixer = engine.NewMixer(10, game.midi)
 
 	fmt.Printf("Creating Audio Plyer\n")
 	game.player = otoCtx.NewPlayer(game.mixer)
@@ -143,6 +146,7 @@ func (g *Game) Update() error {
 					bf := math.Pow(2, float64(k.Octave)) * 27.5 //frequ of A
 					frequ := bf * math.Pow(toneFrequIncrment, float64(k.Number-9))
 					c.Frequency = frequ
+					c.Velocity(k.Velocity)
 					break
 				}
 			}
