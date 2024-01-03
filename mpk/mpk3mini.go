@@ -23,20 +23,29 @@ func NewMPK3Mini() *MPK3Mini {
 		case msg.GetSysEx(&bt):
 			fmt.Printf("got sysex: % X\n", bt)
 		case msg.GetNoteStart(&ch, &key, &vel):
-			//fmt.Printf("starting note %s on channel %v with velocity %v\n", midi.Note(key), ch, vel)
-			fmt.Printf("Key %d in Oct %d\n", midi.Note(key).Base(), midi.Note(key).Octave())
+			fmt.Printf("Press %v -> Key %d in Oct %d\n", key, midi.Note(key).Base(), midi.Note(key).Octave())
 			note := midi.Note(key)
 			mk := &MidiKey{
-				Number:   int(note.Base()),
-				Octave:   int(note.Octave()),
-				Velocity: int(vel),
-				Name:     note.String(),
+				Idx:       int(key),
+				Number:    int(note.Base()),
+				Octave:    int(note.Octave()),
+				Velocity:  int(vel),
+				Name:      note.String(),
+				EventType: EventPress,
 			}
-			retVal.keyMap[mk.Name] = mk
+			retVal.keyEvents = append(retVal.keyEvents, mk)
 		case msg.GetNoteEnd(&ch, &key):
+			fmt.Printf("Release %v -> Key %d in Oct %d\n", key, midi.Note(key).Base(), midi.Note(key).Octave())
 			note := midi.Note(key)
-			delete(retVal.keyMap, note.String())
-			//fmt.Printf("ending note %s on channel %v\n", midi.Note(key), ch)
+			mk := &MidiKey{
+				Idx:       int(key),
+				Number:    int(note.Base()),
+				Octave:    int(note.Octave()),
+				Velocity:  int(vel),
+				Name:      note.String(),
+				EventType: EventRelease,
+			}
+			retVal.keyEvents = append(retVal.keyEvents, mk)
 
 		case msg.GetControlChange(&ch, &key, &val):
 			//fmt.Printf("controll msg: %d val: %d, channel %d\n", key, val, ch)
@@ -65,16 +74,16 @@ func NewMPK3Mini() *MPK3Mini {
 	retVal.knobMap[76] = &Knob{"K7", 76, 0}
 	retVal.knobMap[77] = &Knob{"K8", 77, 0}
 
-	retVal.keyMap = make(map[string]*MidiKey)
+	retVal.keyEvents = make([]*MidiKey, 0)
 
 	retVal.stopFunc = stop
 	return retVal
 }
 
 type MPK3Mini struct {
-	knobMap  map[int]*Knob
-	keyMap   map[string]*MidiKey
-	stopFunc func()
+	knobMap   map[int]*Knob
+	keyEvents []*MidiKey
+	stopFunc  func()
 }
 
 type Knob struct {
@@ -83,11 +92,20 @@ type Knob struct {
 	val  int
 }
 
+type MidiEvent int
+
+const (
+	EventRelease MidiEvent = iota
+	EventPress
+)
+
 type MidiKey struct {
-	Name     string
-	Octave   int
-	Number   int
-	Velocity int
+	Name      string
+	Octave    int
+	Number    int
+	Velocity  int
+	EventType MidiEvent
+	Idx       int
 }
 
 type Pad struct {
@@ -108,12 +126,9 @@ func (m *MPK3Mini) KnobVal(s string) int {
 }
 
 func (m *MPK3Mini) MidiKeys() []*MidiKey {
-	//fixme check maps package https://stackoverflow.com/questions/21362950/getting-a-slice-of-keys-from-a-map
-	keys := make([]*MidiKey, len(m.keyMap))
-	i := 0
-	for _, k := range m.keyMap {
-		keys[i] = k
-		i++
-	}
-	return keys
+	return m.keyEvents
+}
+
+func (m *MPK3Mini) ClearEvents() {
+	m.keyEvents = m.keyEvents[0:0]
 }
