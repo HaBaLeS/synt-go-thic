@@ -44,7 +44,7 @@ func (m *Mixer) Read(p []byte) (n int, err error) {
 			case SAW:
 				val += v.AdvanceOscilatorSaw() / 4
 			case TRIANGLE:
-				val += v.AdvanceOscilatorTriangle() / 4
+				val += v.AdvanceOscilatorSawBandLimited() / 4
 			case NOISE:
 				noiseLastVal = v.AdvanceOscilatorNoise(noiseLastVal)
 				val += noiseLastVal / 4
@@ -66,8 +66,10 @@ func (m *Mixer) AsynMidiMonitor() {
 	for true {
 		time.Sleep(100 * time.Millisecond)
 		velGain := m.midi.KnobVal("K1")
+		harmonics := m.midi.KnobVal("K3")
 		for _, v := range m.channels {
 			v.VelGain(velGain)
+			v.Harmonics(harmonics)
 		}
 
 		//WaveForm Selector

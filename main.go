@@ -8,7 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	//_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
-	_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
+	//_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 	"log"
 	"math"
 	"time"
@@ -55,12 +55,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Waveform Select K2 -> %d", g.midi.KnobVal("K2")), 20, 116)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf(">%s<", g.mixer.WaveFormName), 200, 116)
 
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K3 -> %d", g.midi.KnobVal("K3")), 20, 132)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K4 -> %d", g.midi.KnobVal("K4")), 20, 148)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K5 -> %d", g.midi.KnobVal("K5")), 20, 164)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K6 -> %d", g.midi.KnobVal("K6")), 20, 178)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K7 -> %d", g.midi.KnobVal("K7")), 20, 192)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K8 -> %d", g.midi.KnobVal("K8")), 20, 208)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("# Harmonics -> %d", g.midi.KnobVal("K3")), 20, 132)
+
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K4 -> %d", g.midi.KnobVal("K4")), 20, 148+100)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K5 -> %d", g.midi.KnobVal("K5")), 20, 164+100)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K6 -> %d", g.midi.KnobVal("K6")), 20, 178+100)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K7 -> %d", g.midi.KnobVal("K7")), 20, 192+100)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("K8 -> %d", g.midi.KnobVal("K8")), 20, 208+100)
 
 	/*for i, v := range g.midi.MidiKeys() {
 		if v != nil {

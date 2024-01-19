@@ -3,6 +3,9 @@ package mpk
 import (
 	"fmt"
 	"gitlab.com/gomidi/midi/v2"
+	//_ "gitlab.com/gomidi/midi/v2/drivers/midicat"
+	_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
+	//_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 )
 
 func NewMPK3Mini() *MPK3Mini {

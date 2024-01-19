@@ -24,6 +24,7 @@ type Oscillator struct {
 	samplerate float64
 	vel        int
 	velGain    int
+	harmonics  int
 }
 
 func NewOscillator() *Oscillator {
@@ -31,6 +32,7 @@ func NewOscillator() *Oscillator {
 		phase:      0.0,
 		Frequency:  0.0,
 		samplerate: 48000.0,
+		harmonics:  1.0,
 	}
 }
 
@@ -83,6 +85,30 @@ func (o *Oscillator) AdvanceOscilatorSaw() float64 {
 
 	vg := math.Min(float64(o.vel+o.velGain), 127.0)
 	return ((o.phase * 2.0) - 1.0) / (127.0 / vg)
+}
+
+func (o *Oscillator) AdvanceOscilatorSawBandLimited() float64 {
+	o.phase += o.Frequency / o.samplerate
+
+	for o.phase > 1.0 {
+		o.phase -= 1.0
+	}
+
+	for o.phase < 0.0 {
+		o.phase += 1.0
+	}
+
+	var vg float64
+	for i := 1; i <= o.harmonics; i++ {
+		vg += math.Sin(o.phase*float64(i)) / float64(i)
+	}
+
+	//adjust the volume
+	vg = vg * 2.0 / math.Pi
+
+	return vg
+	//vg := math.Min(float64(o.vel+o.velGain), 127.0)
+	//return ((o.phase * 2.0) - 1.0) / (127.0 / vg)
 }
 
 func (o *Oscillator) AdvanceOscilatorTriangle() float64 {
@@ -139,4 +165,8 @@ func (o *Oscillator) Velocity(vel int) {
 
 func (o *Oscillator) VelGain(gain int) {
 	o.velGain = gain
+}
+
+func (o *Oscillator) Harmonics(h int) {
+	o.harmonics = h
 }
