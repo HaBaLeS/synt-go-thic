@@ -1,9 +1,10 @@
 package engine
 
 import (
-	"github.com/HaBaLeS/synt-go-thic/mpk"
 	"math"
 	"time"
+
+	"github.com/HaBaLeS/synt-go-thic/mpk"
 )
 
 type Mixer struct {
@@ -63,6 +64,9 @@ func (m *Mixer) Channel(i int) *Oscillator {
 }
 
 func (m *Mixer) AsynMidiMonitor() {
+	if m.midi == nil {
+		return
+	}
 	for true {
 		time.Sleep(100 * time.Millisecond)
 		velGain := m.midi.KnobVal("K1")

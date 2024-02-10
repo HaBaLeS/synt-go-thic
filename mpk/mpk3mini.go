@@ -2,19 +2,19 @@ package mpk
 
 import (
 	"fmt"
+
 	"gitlab.com/gomidi/midi/v2"
 	//_ "gitlab.com/gomidi/midi/v2/drivers/midicat"
-	_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
+	//_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
 	//_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 )
 
-func NewMPK3Mini() *MPK3Mini {
+func NewMPK3Mini() (*MPK3Mini, error) {
 	inPorts := midi.GetInPorts()
 	fmt.Printf("Found Midi Device: %v", inPorts)
 	in, err := midi.FindInPort("MPK mini 3")
 	if err != nil {
-		panic(fmt.Errorf("can't find Midi Device"))
-
+		return nil, fmt.Errorf("can't find Midi Device")
 	}
 
 	retVal := &MPK3Mini{}
@@ -64,7 +64,7 @@ func NewMPK3Mini() *MPK3Mini {
 
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err)
-		return nil
+		return nil, err
 	}
 
 	retVal.knobMap = make(map[int]*Knob)
@@ -80,7 +80,7 @@ func NewMPK3Mini() *MPK3Mini {
 	retVal.keyEvents = make([]*MidiKey, 0)
 
 	retVal.stopFunc = stop
-	return retVal
+	return retVal, nil
 }
 
 type MPK3Mini struct {

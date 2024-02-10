@@ -2,16 +2,20 @@ package main
 
 import (
 	"fmt"
+	"github.com/HaBaLeS/synt-go-thic/ui"
+
 	"github.com/HaBaLeS/synt-go-thic/engine"
 	"github.com/HaBaLeS/synt-go-thic/mpk"
 	"github.com/ebitengine/oto/v3"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+
 	//_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
-	//_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 	"log"
 	"math"
 	"time"
+
+	_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 )
 
 var pos = 0.0
@@ -50,6 +54,11 @@ type Game struct {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 
+	ui.DrawUI(screen)
+
+	if g.midi == nil {
+		return
+	}
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Key Press additional Gain -> %d", g.midi.KnobVal("K1")), 20, 100)
 
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Waveform Select K2 -> %d", g.midi.KnobVal("K2")), 20, 116)
@@ -109,7 +118,10 @@ func main() {
 	}
 
 	fmt.Printf("Creating Midi Device\n")
-	game.midi = mpk.NewMPK3Mini()
+	game.midi, err = mpk.NewMPK3Mini()
+	if err != nil {
+		log.Printf("error %v", err)
+	}
 
 	game.mixer = engine.NewMixer(10, game.midi)
 
@@ -125,6 +137,8 @@ func main() {
 		ebiten.SetFullscreen(true)
 	}
 
+	ui.InitUI()
+
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
@@ -137,6 +151,11 @@ func main() {
 
 func (g *Game) Update() error {
 
+	ui.UpdateUI()
+
+	if g.midi == nil {
+		return nil
+	}
 	midiKeys := g.midi.MidiKeys()
 	for _, k := range midiKeys {
 		if k.EventType == mpk.EventPress {
