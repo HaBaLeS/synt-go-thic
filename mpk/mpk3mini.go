@@ -13,32 +13,26 @@ import (
 
 func NewMPK3Mini() (*MPK3Mini, error) {
 
-	/*setupError := akai.AkaiSendSettingsWithDriver()
-	if setupError != nil {
-		panic(setupError)
-	}*/
-
 	retVal := &MPK3Mini{
-
-		k1: NewRelativeKnob("k1", "Knpf 1", 1000, 70), // Only ASCII
-		k2: NewRelativeKnob("k2", "OhneUmlauf 2", 1000, 71),
-		k3: NewRelativeKnob("k3", "i3 panel width", 1000, 72),
-		k4: NewRelativeKnob("k4", "KNOB 4", 1000, 73),
-
-		k5: New8BitKnob("k5", "max", 74),
-		k6: New8BitKnob("k6", "min", 75),
-		k7: New8BitKnob("k7", "range", 76),
-		k8: New8BitKnob("k8", "normal", 77),
+		knobs:       make(map[string]*MidiKnob),
+		activeKnobs: make(map[uint8]*MidiKnob),
 	}
 
-	retVal.k5.high = 64
-	retVal.k6.low = 32
-	retVal.k7.low = 32
-	retVal.k7.high = 100
+	retVal.defineRelativeKnob("k1", "Knpf 1", 70) // Only ASCII
+	retVal.defineRelativeKnob("k2", "OhneUmlauf 2", 71)
+	retVal.defineRelativeKnob("k3", "i3 panel width", 72)
+	retVal.defineRelativeKnob("k4", "KNOB 4", 73)
+
+	retVal.defineAbsolutKnob("k5", "maxx", 74)
+	retVal.defineAbsolutKnob("k6", "minn", 75)
+	retVal.defineAbsolutKnob("k7", "rrange", 76)
+	retVal.defineAbsolutKnob("k8", "normal", 77)
+
+	retVal.MidiKnob("k5").Range(0, 64)
+	retVal.MidiKnob("k6").Range(32, 127)
+	retVal.MidiKnob("k7").Range(32, 50)
 
 	retVal.initSysExProgramm()
-
-	//akai.AkaiSendSettingsWithDriver()
 
 	inPorts := midi.GetInPorts()
 	fmt.Printf("Found Midi Device: %v", inPorts)
@@ -81,6 +75,17 @@ func NewMPK3Mini() (*MPK3Mini, error) {
 
 		case msg.GetControlChange(&ch, &key, &val):
 			fmt.Printf("controll msg: %d val: %d, channel %d\n", key, val, ch)
+			knob := retVal.KnobByCC(key)
+			if knob.appmode == KNOB_MODE_8BIT {
+				knob.currentVal = int(val)
+			} else if knob.appmode == KNOB_MODE_RELATIVE {
+				if val >= 64 {
+					knob.currentVal++
+				} else {
+					knob.currentVal--
+				}
+			}
+			fmt.Printf("Knob %s value= %d", knob.displayName, knob.currentVal)
 			//knob := retVal.knobMap[int(key)]
 			//if knob != nil {
 			//	knob.val = int(val)
@@ -103,18 +108,32 @@ func NewMPK3Mini() (*MPK3Mini, error) {
 }
 
 type MPK3Mini struct {
-	k1        *Knob
-	k2        *Knob
-	k3        *Knob
-	k4        *Knob
-	k5        *Knob
-	k6        *Knob
-	k7        *Knob
-	k8        *Knob
-	keyEvents []*MidiKey
-	stopFunc  func()
+	activeKnobs map[uint8]*MidiKnob //current program knobs
+	knobs       map[string]*MidiKnob
+	keyEvents   []*MidiKey
+	stopFunc    func()
 
 	in drivers.In
+}
+
+func (m *MPK3Mini) defineAbsolutKnob(id, name string, ccid uint8) {
+	m.knobs[id] = New8BitKnob(id, name, ccid)
+	m.activeKnobs[ccid] = m.knobs[id]
+}
+
+func (m *MPK3Mini) defineRelativeKnob(id, name string, ccid uint8) {
+	m.knobs[id] = NewRelativeKnob(id, name, ccid)
+	m.activeKnobs[ccid] = m.knobs[id]
+}
+
+// MidiKnob fetches knobs by id this can be all defined knobs even in not active programs
+func (m *MPK3Mini) MidiKnob(id string) *MidiKnob {
+	return m.knobs[id]
+}
+
+// KnobByCC fetches the knobs by the incoming midi message
+func (m *MPK3Mini) KnobByCC(ccid uint8) *MidiKnob {
+	return m.activeKnobs[ccid]
 }
 
 func (m *MPK3Mini) initSysExProgramm() {
@@ -133,22 +152,21 @@ func (m *MPK3Mini) initSysExProgramm() {
 		programName:    "gtfo",
 		padMidiChannel: 10,
 
-		knob1: m.k1,
-		knob2: m.k2,
-		knob3: m.k3,
-		knob4: m.k4,
-		knob5: m.k5,
-		knob6: m.k6,
-		knob7: m.k7,
-		knob8: m.k8,
+		knob1: m.MidiKnob("k1"),
+		knob2: m.MidiKnob("k2"),
+		knob3: m.MidiKnob("k3"),
+		knob4: m.MidiKnob("k4"),
+		knob5: m.MidiKnob("k5"),
+		knob6: m.MidiKnob("k6"),
+		knob7: m.MidiKnob("k7"),
+		knob8: m.MidiKnob("k8"),
 
 		padBankA: AutopopulatePads(36),
 		padBankB: AutopopulatePads(36 + 8),
 
 		//aftertouch:                     aftertouchOff,
-		aftertouch: aftertouchOff,
-		//aftertouch:                     aftertouchOff,
-		keybedSlashControlsMidiChannel: 1, //SEEMS Important
+		aftertouch:                     aftertouchOff, //aftertouch:                     aftertouchOff,
+		keybedSlashControlsMidiChannel: 1,             //SEEMS Important
 		joyHoriz: joystickAxisConfig{
 			mode: joystickModeSingleCc, //up down same cc
 			cc1:  69,
@@ -171,7 +189,7 @@ func (m *MPK3Mini) initSysExProgramm() {
 		arpeggiatorTimeDiv:     arpeggiatorTimeDiv16T,
 	}
 
-	data, err := setting.SysExStore(Program1)
+	data, err := setting.SysExStore(ProgramRAM)
 	if err != nil {
 		panic(err)
 	}

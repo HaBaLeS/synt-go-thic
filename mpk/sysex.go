@@ -12,14 +12,14 @@ type Settings struct {
 	padBankA       PadBank
 	padBankB       PadBank
 
-	knob1 *Knob
-	knob2 *Knob
-	knob3 *Knob
-	knob4 *Knob
-	knob5 *Knob
-	knob6 *Knob
-	knob7 *Knob
-	knob8 *Knob
+	knob1 *MidiKnob
+	knob2 *MidiKnob
+	knob3 *MidiKnob
+	knob4 *MidiKnob
+	knob5 *MidiKnob
+	knob6 *MidiKnob
+	knob7 *MidiKnob
+	knob8 *MidiKnob
 
 	aftertouch                     aftertouch
 	keybedSlashControlsMidiChannel uint8
@@ -155,7 +155,7 @@ func (s *Settings) SysExStore(prog Program) ([]byte, error) {
 		s.padBankB.pad8.pc,
 	}...)
 
-	for _, knob := range []*Knob{
+	for _, knob := range []*MidiKnob{
 		s.knob1, s.knob2, s.knob3, s.knob4,
 		s.knob5, s.knob6, s.knob7, s.knob8,
 	} {
