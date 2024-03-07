@@ -24,13 +24,24 @@ type MidiKnob struct {
 	low, high uint8
 
 	ccId       uint8
-	currentVal int
+	currentVal float64
 }
 
 func (k *MidiKnob) Range(min, max uint8) {
 	//TODO allow setting only before settings are applied via Sysex
 	k.low = min
 	k.high = max
+}
+
+func (k *MidiKnob) Percent() float64 {
+	rng := k.high - k.low
+	perc := 100 / float64(rng) * k.currentVal
+
+	return perc
+}
+
+func (k *MidiKnob) Value() int {
+	return int(k.currentVal)
 }
 
 func NewRelativeKnob(id, name string, ccId uint8) *MidiKnob {

@@ -5,10 +5,9 @@ import (
 	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/drivers"
 	"log"
-	"os"
 	//_ "gitlab.com/gomidi/midi/v2/drivers/midicat"
 	//_ "gitlab.com/gomidi/midi/v2/drivers/midicatdrv"
-	//_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
+	_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 )
 
 func NewMPK3Mini() (*MPK3Mini, error) {
@@ -38,6 +37,7 @@ func NewMPK3Mini() (*MPK3Mini, error) {
 	fmt.Printf("Found Midi Device: %v", inPorts)
 	in, err := midi.FindInPort("MPK mini 3")
 	if err != nil {
+		panic(err)
 		return nil, fmt.Errorf("can't find Midi Device")
 	}
 	retVal.in = in
@@ -77,12 +77,12 @@ func NewMPK3Mini() (*MPK3Mini, error) {
 			fmt.Printf("controll msg: %d val: %d, channel %d\n", key, val, ch)
 			knob := retVal.KnobByCC(key)
 			if knob.appmode == KNOB_MODE_8BIT {
-				knob.currentVal = int(val)
+				knob.currentVal = float64(val)
 			} else if knob.appmode == KNOB_MODE_RELATIVE {
 				if val >= 64 {
-					knob.currentVal++
-				} else {
 					knob.currentVal--
+				} else {
+					knob.currentVal++
 				}
 			}
 			fmt.Printf("Knob %s value= %d", knob.displayName, knob.currentVal)
@@ -149,7 +149,7 @@ func (m *MPK3Mini) initSysExProgramm() {
 
 	setting := &Settings{
 
-		programName:    "gtfo",
+		programName:    "gtfo-mob",
 		padMidiChannel: 10,
 
 		knob1: m.MidiKnob("k1"),
@@ -189,14 +189,10 @@ func (m *MPK3Mini) initSysExProgramm() {
 		arpeggiatorTimeDiv:     arpeggiatorTimeDiv16T,
 	}
 
-	data, err := setting.SysExStore(ProgramRAM)
+	data, err := setting.SysExStore(Program1)
 	if err != nil {
 		panic(err)
 	}
-
-	f, _ := os.Create("/tmp/my.hex")
-	f.Write(data)
-	f.Close()
 
 	log.Printf("Sending SysEx\n")
 	err = midiOut.Send(data)

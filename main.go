@@ -137,7 +137,7 @@ func main() {
 		ebiten.SetFullscreen(true)
 	}
 
-	ui.InitUI()
+	ui.InitUI(game.midi)
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
